@@ -1,0 +1,191 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <meta name="description" content="Compress text with LZ-string and encode it as base64, or decode it back. Useful for sharing long messages via Teams or WhatsApp. Fully client-side." />
+  <title>LZ-String Base64 Converter</title>
+  <script src="https://cdn.jsdelivr.net/npm/lz-string@1.4.4/libs/lz-string.min.js"></script>
+  <script type="application/ld+json">
+  {
+    "@context": "https://schema.org",
+    "@type": "WebApplication",
+    "name": "LZ-String Base64 Converter",
+    "description": "Compress and encode text using LZ-string into base64 or decode it back. Useful for sharing long content in chat apps.",
+    "applicationCategory": "Utility",
+    "operatingSystem": "All",
+    "browserRequirements": "Requires JavaScript-enabled browser",
+    "url": "https://your-domain.com/lz-string-tool"
+  }
+  </script>
+  <style>
+    body {
+      font-family: sans-serif;
+      max-width: 800px;
+      margin: auto;
+      padding: 2rem;
+    }
+    textarea {
+      width: 100%;
+      height: 150px;
+      font-family: monospace;
+      padding: 1rem 3rem 1rem 1rem;
+      margin-bottom: 0.25rem;
+      position: relative;
+    }
+    .char-count {
+      font-size: 0.85rem;
+      color: #666;
+      margin-bottom: 1.2rem;
+    }
+    button {
+      margin-bottom: 1.5rem;
+      padding: 0.5rem 1rem;
+      font-size: 1rem;
+    }
+    h1, h2 {
+      margin-top: 2rem;
+    }
+    .copy-btn {
+      position: absolute;
+      top: 6px;
+      right: 6px;
+      background: #fff;
+      border: 1px solid #ccc;
+      font-size: 0.85rem;
+      padding: 2px 6px;
+      cursor: pointer;
+      transition: all 0.3s ease;
+      z-index: 2;
+    }
+    .relative { position: relative; }
+    footer {
+      margin-top: 3rem;
+      padding-top: 2rem;
+      border-top: 1px solid #ccc;
+      font-size: 0.9rem;
+      color: #444;
+    }
+    .faq h3 {
+      margin-top: 1.5rem;
+    }
+  </style>
+</head>
+<body>
+  <h1>LZ-String Base64 Converter</h1>
+  <p>Compress and encode your text into base64 using LZ-string, or decode it back. Fully in-browser. Ideal for Teams, Slack, WhatsApp.</p>
+
+  <h2>🔼 Compress & Encode</h2>
+  <div class="relative">
+    <textarea id="inputText" placeholder="Paste text here..."></textarea>
+    <button class="copy-btn" id="copyInput" onclick="copy('inputText', 'copyInput')">Copy</button>
+  </div>
+  <div class="char-count" id="inputStats">Characters: 0</div>
+  <button id="encodeBtn" onclick="encode()" disabled>Encode</button>
+  <div class="relative">
+    <textarea id="outputEncoded" readonly placeholder="Base64-encoded result..."></textarea>
+    <button class="copy-btn" id="copyEncoded" onclick="copy('outputEncoded', 'copyEncoded')">Copy</button>
+  </div>
+  <div class="char-count" id="outputStats">Characters: 0</div>
+
+  <h2>🔽 Decode & Decompress</h2>
+  <div class="relative">
+    <textarea id="inputEncoded" placeholder="Paste base64-encoded string..."></textarea>
+    <button class="copy-btn" id="copyInputEncoded" onclick="copy('inputEncoded', 'copyInputEncoded')">Copy</button>
+  </div>
+  <div class="char-count" id="encodedStats">Characters: 0</div>
+  <button id="decodeBtn" onclick="decode()" disabled>Decode</button>
+  <div class="relative">
+    <textarea id="outputDecoded" readonly placeholder="Original text will appear here..."></textarea>
+    <button class="copy-btn" id="copyDecoded" onclick="copy('outputDecoded', 'copyDecoded')">Copy</button>
+  </div>
+  <div class="char-count" id="decodedStats">Characters: 0</div>
+
+  <footer>
+    <h2>Why this tool?</h2>
+    <p>
+      Some messaging apps block or modify long text. This tool compresses your message using LZ-string, then base64 encodes it for safe sharing. Works fully offline in your browser.
+    </p>
+
+    <div class="faq">
+      <h2>FAQs</h2>
+      <h3>🔒 Is this secure?</h3>
+      <p>Yes. This app runs entirely in your browser and does not send data anywhere. You can use it offline.</p>
+
+      <h3>💬 Why use this instead of plain text?</h3>
+      <p>Sometimes chat apps truncate or modify long messages. This tool makes the text compact, safe, and easily recoverable.</p>
+
+      <h3>📦 What format is used?</h3>
+      <p>The text is compressed using the LZ-string algorithm and encoded into Base64. This is efficient and cross-platform compatible in JavaScript environments.</p>
+
+      <h3>🧪 What happens when I decode?</h3>
+      <p>The Base64 is decoded and decompressed using the same algorithm to get back the original plain text.</p>
+
+      <h3>🧰 Can I use this for JSON or code snippets?</h3>
+      <p>Yes, it's especially useful for long JSON payloads, error traces, or configuration blocks that may not fit in a message box.</p>
+    </div>
+  </footer>
+
+  <script>
+    const inputText = document.getElementById('inputText');
+    const outputEncoded = document.getElementById('outputEncoded');
+    const inputEncoded = document.getElementById('inputEncoded');
+    const outputDecoded = document.getElementById('outputDecoded');
+
+    function updateStats(id, current, reference = null) {
+      let stat = `Characters: ${current.length}`;
+      if (reference !== null && reference.length > 0) {
+        const diff = current.length - reference.length;
+        const pct = Math.round((diff / reference.length) * 100);
+        stat += ` | ${diff >= 0 ? '+' : ''}${pct}% ${diff >= 0 ? 'bigger' : 'smaller'}`;
+      }
+      document.getElementById(id).textContent = stat;
+    }
+
+    inputText.addEventListener('input', () => {
+      encodeBtn.disabled = !inputText.value.trim();
+      updateStats('inputStats', inputText.value);
+    });
+
+    inputEncoded.addEventListener('input', () => {
+      decodeBtn.disabled = !inputEncoded.value.trim();
+      updateStats('encodedStats', inputEncoded.value);
+    });
+
+    function encode() {
+      const raw = inputText.value;
+      const compressed = LZString.compressToBase64(raw);
+      outputEncoded.value = compressed;
+      updateStats('outputStats', compressed, raw);
+    }
+
+    function decode() {
+      const encoded = inputEncoded.value;
+      try {
+        const decompressed = LZString.decompressFromBase64(encoded) || '';
+        outputDecoded.value = decompressed;
+        updateStats('decodedStats', decompressed, encoded);
+      } catch (e) {
+        outputDecoded.value = 'Error decoding: ' + e.message;
+        updateStats('decodedStats', '', encoded);
+      }
+    }
+
+    function copy(id, buttonId) {
+      const btn = document.getElementById(buttonId);
+      navigator.clipboard.writeText(document.getElementById(id).value).then(() => {
+        const original = btn.textContent;
+        btn.textContent = '✅ Copied!';
+        btn.style.backgroundColor = '#d4edda';
+        btn.style.borderColor = '#28a745';
+        setTimeout(() => {
+          btn.textContent = original;
+          btn.style.backgroundColor = '';
+          btn.style.borderColor = '';
+        }, 1500);
+      });
+    }
+  </script>
+</body>
+</html>
+
